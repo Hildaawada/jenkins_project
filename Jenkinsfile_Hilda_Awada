@@ -1,0 +1,80 @@
+pipeline {
+    agent any
+
+    environment {
+        VIRTUAL_ENV = 'venv'
+    }
+
+    stages {
+        stage('Setup') {
+            steps {
+                script {
+                    // Create virtual environment if it doesn't exist
+                    if (!fileExists("${env.WORKSPACE}\\${VIRTUAL_ENV}")) {
+                        bat "python -m venv ${VIRTUAL_ENV}"
+                    }
+                    // Activate and install dependencies
+                    bat "call ${VIRTUAL_ENV}\\Scripts\\activate && pip install --upgrade pip && pip install -r requirements.txt && pip install pytest coverage bandit"
+                }
+            }
+        }
+
+        stage('Lint') {
+            steps {
+                script {
+                    bat "call ${VIRTUAL_ENV}\\Scripts\\activate && flake8 app.py"
+                }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                script {
+                    bat "call ${VIRTUAL_ENV}\\Scripts\\activate && pytest"
+                }
+            }
+        }
+
+        stage('Coverage') {
+            steps {
+                script {
+                    // Run coverage and generate report
+                    bat """
+                        call ${VIRTUAL_ENV}\\Scripts\\activate &&
+                        coverage run -m pytest &&
+                        coverage report &&
+                        coverage html
+                    """
+                    echo "Code coverage report generated successfully."
+                }
+            }
+        }
+
+        stage('Security Scan') {
+            steps {
+                script {
+                    // Run bandit security scan
+                    bat "call ${VIRTUAL_ENV}\\Scripts\\activate && bandit -r . -f txt -o bandit_report.txt"
+                    echo "Security scan completed. Report saved as bandit_report.txt"
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                script {
+                    // Simulated deployment
+                    echo "Deploying application to local environment..."
+                    bat "call ${VIRTUAL_ENV}\\Scripts\\activate && python app.py"
+                    echo "Deployment successful."
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+    }
+}
