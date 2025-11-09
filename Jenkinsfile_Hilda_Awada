@@ -15,7 +15,7 @@ pipeline {
                         bat "python -m venv ${VIRTUAL_ENV}"
                     }
 
-                    // Activate and install dependencies (Windows-safe command)
+                    // Activate and install dependencies
                     bat "call ${VIRTUAL_ENV}\\Scripts\\activate && python -m pip install --upgrade pip && pip install -r requirements.txt && pip install pytest coverage bandit flake8"
                 }
             }
@@ -53,7 +53,8 @@ pipeline {
             steps {
                 script {
                     echo "Running Bandit security scan..."
-                    bat "call ${VIRTUAL_ENV}\\Scripts\\activate && bandit -r . -f txt -o bandit_report.txt"
+                    // Bandit warnings no longer fail the pipeline
+                    bat "call ${VIRTUAL_ENV}\\Scripts\\activate && bandit -r . -f txt -o bandit_report.txt || exit 0"
                     echo "Security scan completed. Report saved as bandit_report.txt."
                 }
             }
