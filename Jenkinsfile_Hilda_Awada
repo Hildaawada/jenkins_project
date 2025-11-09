@@ -6,6 +6,7 @@ pipeline {
     }
 
     stages {
+
         stage('Setup') {
             steps {
                 script {
@@ -13,13 +14,9 @@ pipeline {
                     if (!fileExists("${env.WORKSPACE}\\${VIRTUAL_ENV}")) {
                         bat "python -m venv ${VIRTUAL_ENV}"
                     }
-                    // Activate and install dependencies
-                   bat """
-                        call ${VIRTUAL_ENV}\\Scripts\\activate &&
-                        python -m pip install --upgrade pip &&
-                        pip install -r requirements.txt &&
-                        pip install pytest coverage bandit
-                       """
+
+                    // Activate and install dependencies (Windows-safe command)
+                    bat "call ${VIRTUAL_ENV}\\Scripts\\activate && python -m pip install --upgrade pip && pip install -r requirements.txt && pip install pytest coverage bandit flake8"
                 }
             }
         }
@@ -27,6 +24,7 @@ pipeline {
         stage('Lint') {
             steps {
                 script {
+                    echo "Running flake8 linting..."
                     bat "call ${VIRTUAL_ENV}\\Scripts\\activate && flake8 app.py"
                 }
             }
@@ -35,6 +33,7 @@ pipeline {
         stage('Test') {
             steps {
                 script {
+                    echo "Running unit tests..."
                     bat "call ${VIRTUAL_ENV}\\Scripts\\activate && pytest"
                 }
             }
@@ -43,13 +42,8 @@ pipeline {
         stage('Coverage') {
             steps {
                 script {
-                    // Run coverage and generate report
-                    bat """
-                        call ${VIRTUAL_ENV}\\Scripts\\activate &&
-                        coverage run -m pytest &&
-                        coverage report &&
-                        coverage html
-                    """
+                    echo "Running coverage analysis..."
+                    bat "call ${VIRTUAL_ENV}\\Scripts\\activate && coverage run -m pytest && coverage report && coverage html"
                     echo "Code coverage report generated successfully."
                 }
             }
@@ -58,9 +52,9 @@ pipeline {
         stage('Security Scan') {
             steps {
                 script {
-                    // Run bandit security scan
+                    echo "Running Bandit security scan..."
                     bat "call ${VIRTUAL_ENV}\\Scripts\\activate && bandit -r . -f txt -o bandit_report.txt"
-                    echo "Security scan completed. Report saved as bandit_report.txt"
+                    echo "Security scan completed. Report saved as bandit_report.txt."
                 }
             }
         }
@@ -68,7 +62,6 @@ pipeline {
         stage('Deploy') {
             steps {
                 script {
-                    // Simulated deployment
                     echo "Deploying application to local environment..."
                     bat "call ${VIRTUAL_ENV}\\Scripts\\activate && python app.py"
                     echo "Deployment successful."
@@ -79,6 +72,7 @@ pipeline {
 
     post {
         always {
+            echo "Cleaning workspace..."
             cleanWs()
         }
     }
